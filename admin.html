@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Visitation ERP — Admin Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div id="login-screen" style="position:relative;">
+  <button class="login-theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="theme-icon-login">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <div>
+        <div class="login-logo-text">Visitation ERP</div>
+        <div class="login-logo-sub">Admin Console</div>
+      </div>
+    </div>
+    <div class="login-divider"></div>
+    <div class="field-group">
+      <label>Supabase URL</label>
+      <input type="text" id="inp-url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label>API Key</label>
+      <input type="password" id="inp-key" placeholder="sb_publishable_..." autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label>Admin Password</label>
+      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="remember-row">
+      <input type="checkbox" id="inp-remember">
+      <label for="inp-remember">Remember me on this device</label>
+    </div>
+    <button class="btn-login" onclick="doLogin()">Sign In to Admin</button>
+  </div>
+</div>
+
+<div id="app">
+
+  <header class="app-header">
+    <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="header-brand">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <div class="brand-name">Visitation <span>ERP</span></div>
+    </div>
+    <div class="header-center">
+      <div class="header-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="header-search" id="global-search" placeholder="Search customers, visits..." onkeydown="if(event.key==='Enter')globalSearch()">
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="theme-icon-app"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" id="notif-btn" onclick="showPage('field');filterVis('pending',document.querySelector('#vis-pill-group .pill:nth-child(2)'))" title="Delete Requests">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot" id="notif-dot" style="display:none;"></span>
+      </button>
+      <button class="btn-logout-header" onclick="doLogout()">
+        <span>Logout</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Field Operations</div>
+      <button class="nav-item" id="nav-field" onclick="showPage('field')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Field Operations
+        <span class="nav-badge" id="req-badge" style="display:none;">0</span>
+      </button>
+      <button class="nav-item" id="nav-activity" onclick="showPage('activity')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activity Log
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Sales & CRM</div>
+      <button class="nav-item" id="nav-customers" onclick="showPage('customers')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Customers
+      </button>
+      <button class="nav-item" id="nav-contracts" onclick="showPage('contracts')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Contracts
+      </button>
+      <button class="nav-item" id="nav-offtake" onclick="showPage('offtake')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+        Off-take Orders
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Catalog</div>
+      <button class="nav-item" id="nav-products" onclick="showPage('products')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Products
+      </button>
+      <button class="nav-item" id="nav-price" onclick="showPage('price')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Price List
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Admin</div>
+      <button class="nav-item" id="nav-users" onclick="showPage('users')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Users
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+
+    <div class="page active" id="page-dashboard">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="dash-updated">Loading data...</div>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-outline btn-sm" onclick="refreshDashboard()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card"><div class="stat-label">Active Visits</div><div class="stat-value clr-green skeleton" style="height:40px;width:80px;margin:4px 0;"></div></div>
+        <div class="stat-card amber"><div class="stat-label">Pending Delete</div><div class="stat-value clr-amber skeleton" style="height:40px;width:60px;margin:4px 0;"></div></div>
+        <div class="stat-card red"><div class="stat-label">Total Customers</div><div class="stat-value clr-red skeleton" style="height:40px;width:70px;margin:4px 0;"></div></div>
+        <div class="stat-card blue"><div class="stat-label">Active Contracts</div><div class="stat-value clr-blue skeleton" style="height:40px;width:60px;margin:4px 0;"></div></div>
+        <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value skeleton" style="height:40px;width:70px;margin:4px 0;"></div></div>
+        <div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value skeleton" style="height:40px;width:50px;margin:4px 0;"></div></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-head"><div class="card-title">Visits by Area</div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="areaChart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Visits by Position</div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="posChart"></canvas></div></div>
+        </div>
+        <div class="card col-span-2">
+          <div class="card-head"><div class="card-title">Recent Visits</div><button class="btn btn-outline btn-sm" onclick="showPage('visits')">View All</button></div>
+          <div class="card-body" style="padding:0 1.25rem;" id="dash-recent"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Expiring Contracts (30 days)</div></div>
+          <div class="card-body" style="padding:0 1.25rem;" id="dash-contracts-expiring"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Recent Activity Log</div></div>
+          <div class="card-body" style="padding:0 1.25rem;" id="dash-activity"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FIELD OPERATIONS ═══ -->
+    <div class="page" id="page-field">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Field Operations</div>
+          <div class="page-sub" id="vis-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-outline btn-sm" id="field-export-btn" onclick="exportVisits()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab switcher -->
+      <div class="pill-group" style="margin-bottom:16px;">
+        <button class="pill active" id="ftab-visits" onclick="switchFieldTab('visits',this)">Visits</button>
+        <button class="pill" id="ftab-visitation" onclick="switchFieldTab('visitation',this)">Visitation Report</button>
+      </div>
+
+      <!-- TAB: Visits -->
+      <div id="field-tab-visits">
+        <div class="bulk-bar" id="vis-bulk-bar">
+          <span class="bulk-text"><span id="vis-bulk-count">0</span> selected</span>
+          <button class="btn btn-success btn-sm" onclick="askBulkAction('approve')">Approve All</button>
+          <button class="btn btn-danger btn-sm" onclick="askBulkAction('reject')">Reject All</button>
+          <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="exportSelected()">Export Selected</button>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="pill-group" id="vis-pill-group">
+              <button class="pill active" onclick="filterVis('active',this)">Active</button>
+              <button class="pill" onclick="filterVis('pending',this)">
+                Pending Delete <span id="req-badge-pending" style="display:none;background:var(--amber);color:#fff;border-radius:99px;font-size:10px;padding:1px 6px;margin-left:2px;">0</span>
+              </button>
+              <button class="pill" onclick="filterVis('deleted',this)">Archived</button>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+              <select class="select-field" id="vis-date-range" onchange="resetAndLoadVisits()">
+                <option value="all">All Time</option>
+                <option value="7days">Last 7 Days</option>
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+              </select>
+              <div class="input-wrap">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="input-field has-icon" id="vis-search" placeholder="Search outlet..." style="width:180px;" onkeydown="if(event.key==='Enter')resetAndLoadVisits()">
+              </div>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <thead id="vis-thead"></thead>
+              <tbody id="vis-tbody"><tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="vis-pagination"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Visitation Report -->
+      <div id="field-tab-visitation" style="display:none;">
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="pill-group">
+              <button class="pill active" id="vt-pill-daily" onclick="filterVisitation('daily',this)">Daily</button>
+              <button class="pill" id="vt-pill-weekly" onclick="filterVisitation('weekly',this)">Weekly</button>
+              <button class="pill" id="vt-pill-monthly" onclick="filterVisitation('monthly',this)">Monthly</button>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;">
+              <select class="select-field" id="visit-team-filter" onchange="loadVisitation()">
+                <option value="">All Teams</option>
+              </select>
+              <input type="date" class="input-field" id="vt-date" onchange="loadVisitation()">
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <thead><tr><th>Customer</th><th>Team</th><th>BDE Area</th><th>Report</th><th>Result</th><th>Date</th></tr></thead>
+              <tbody id="vt-tbody"><tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ACTIVITY LOG ═══ -->
+    <div class="page" id="page-activity">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Activity Log</div>
+          <div class="page-sub" id="act-meta">Customer activity history</div>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-primary btn-sm" onclick="openActivityModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Log
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="input-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input-field has-icon" id="act-search" placeholder="Search customer..." style="width:200px;" onkeydown="if(event.key==='Enter')loadActivity()">
+          </div>
+        </div>
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>Log ID</th><th>Customer</th><th>Type</th><th>Note</th><th>Created By</th><th>Date</th></tr></thead>
+            <tbody id="act-tbody"><tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CUSTOMER MASTER DATA ═══ -->
+    <div class="page" id="page-customers">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Customer Master Data</div>
+          <div class="page-sub" id="cust-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <div class="input-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input-field has-icon" id="cust-search" placeholder="Search..." style="width:180px;" onkeydown="if(event.key==='Enter')resetAndLoadCustomers()">
+          </div>
+          <select class="select-field" id="cust-team-filter" onchange="onCustTeamFilterChange(); resetAndLoadCustomers();" style="min-width:130px;">
+            <option value="">All Teams</option>
+            <option value="Horeca">Horeca</option>
+            <option value="On Premise">On Premise</option>
+            <option value="Southern">Southern</option>
+          </select>
+          <select class="select-field" id="cust-area-filter" onchange="onCustAreaFilterChange()" style="min-width:110px;">
+            <option value="">All Areas</option>
+          </select>
+          <select class="select-field" id="cust-bde-filter" onchange="resetAndLoadCustomers()" style="min-width:130px;">
+            <option value="">All BDE</option>
+          </select>
+          <select class="select-field" id="cust-status-filter" onchange="resetAndLoadCustomers()">
+            <option value="">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openCustomerModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Customer  
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Outlet Name</th><th>Company</th><th>Team</th><th>BDE</th><th>Type</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="cust-tbody"><tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="cust-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ CONTRACTS ═══ -->
+    <div class="page" id="page-contracts">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Contract Management</div>
+          <div class="page-sub" id="con-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <select class="select-field" id="con-type-filter" onchange="loadContracts()">
+            <option value="">All Types</option>
+            <option value="ANNUAL">Annual</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="MONTHLY">Monthly</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openContractModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Contract
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="pill-group">
+            <button class="pill active" onclick="filterContracts('all',this)">All</button>
+            <button class="pill" onclick="filterContracts('active',this)">Active</button>
+            <button class="pill" onclick="filterContracts('expiring',this)">Expiring Soon</button>
+            <button class="pill" onclick="filterContracts('expired',this)">Expired</button>
+          </div>
+        </div>
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>Contract ID</th><th>Customer</th><th>Period</th><th>Value</th><th>Progress</th><th>Type</th><th>Brands</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="con-tbody"><tr><td colspan="9" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ORDERS ═══ -->
+    <div class="page" id="page-offtake">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Off-take Orders</div>
+          <div class="page-sub" id="ord-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <select class="select-field" id="ord-date-filter" onchange="loadOrders()">
+            <option value="all">All Time</option>
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="7days">Last 7 Days</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="exportOrders()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+      <div class="stats-grid" id="ord-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:1rem;"></div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="input-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input-field has-icon" id="ord-search" placeholder="Search product / customer..." style="width:220px;" oninput="renderOrders()">
+          </div>
+        </div>
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Product</th><th>Qty</th><th>Rebate %</th><th>WS</th><th>Date</th><th>User</th></tr></thead>
+            <tbody id="ord-tbody"><tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="ord-pagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PRODUCTS ═══ -->
+    <div class="page" id="page-products">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Products Catalog</div>
+          <div class="page-sub" id="prod-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <div class="input-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input-field has-icon" id="prod-search" placeholder="Search products..." style="width:180px;" oninput="renderProducts()">
+          </div>
+          <select class="select-field" id="prod-cat-filter" onchange="renderProducts()">
+            <option value="">All Categories</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Product
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>Product ID</th><th>Name</th><th>Brand</th><th>Category</th><th>SKU</th><th>Unit</th><th>Price</th><th>Action</th></tr></thead>
+            <tbody id="prod-tbody"><tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PRICES ═══ -->
+    <div class="page" id="page-price">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Price List</div>
+          <div class="page-sub" id="price-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <div class="input-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input-field has-icon" id="price-search" placeholder="Search price list..." style="width:180px;" oninput="renderPrices()">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openPriceModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Price
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>Price List ID</th><th>Product</th><th>List Name</th><th>Inc. VAT</th><th>Exc. VAT</th><th>Rebate %</th><th>Updated</th></tr></thead>
+            <tbody id="price-tbody"><tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ USERS ═══ -->
+    <div class="page" id="page-users">
+      <div class="page-head">
+        <div>
+          <div class="page-title">User Management</div>
+          <div class="page-sub" id="usr-meta">—</div>
+        </div>
+        <div class="head-actions">
+          <div class="input-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input-field has-icon" id="usr-search" placeholder="Search users..." style="width:180px;" onkeydown="if(event.key==='Enter')resetAndLoadUsers()">
+          </div>
+          <select class="select-field" id="usr-team-filter" onchange="resetAndLoadUsers()" style="min-width:130px;">
+            <option value="">All Teams</option>
+            <option value="Admin">Admin</option>
+            <option value="Horeca">Horeca</option>
+            <option value="On Premise">On Premise</option>
+            <option value="Southern">Southern</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openUserModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add User
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>User ID</th><th>Name / Email</th><th>Username</th><th>Team</th><th>Area / BDE</th><th>Outlets</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="usr-tbody"><tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-3);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="usr-pagination"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-head">
+      <div class="modal-head-title" id="confirm-title">Confirm</div>
+      <button class="modal-close" onclick="closeConfirm()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-body" style="color:var(--text-2);font-size:14px;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancel</button>
+      <button class="btn" id="confirm-ok-btn" onclick="doConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cust-overlay">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <div class="modal-head-title" id="cust-modal-title">Add Customer</div>
+      <button class="modal-close" onclick="closeCustomerModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cm-id">
+      <div class="form-grid">
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Customer ID <span class="required">*</span></label>
+            <input type="text" class="form-input" id="cm-code" placeholder="Waiting for Team and Area..." readonly style="background: rgba(0,0,0,0.05); font-weight: bold; color: var(--primary);">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Tax ID</label>
+            <input type="text" class="form-input" id="cm-tax" placeholder="0105...">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Outlet Name <span class="required">*</span></label>
+          <input type="text" class="form-input" id="cm-name" placeholder="e.g. The Empire Bar">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Company Name</label>
+          <input type="text" class="form-input" id="cm-company" placeholder="e.g. Empire Co., Ltd.">
+        </div>
+        
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Team <span class="required">*</span></label>
+            <select class="form-input form-select" id="cm-team" onchange="updateAreaDropdownForCustomer(this.value)">
+              <option value="">-- Select Team --</option>
+              
+              <option value="Horeca">Horeca</option>
+              <option value="On Premise">On Premise</option>
+              <option value="Southern">Southern</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Area <span class="required">*</span></label>
+            <select class="form-input form-select" id="cm-area" onchange="updateBdeDropdownByArea()">
+              <option value="">-- Select Team First --</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">BDE <span class="required">*</span></label>
+            <select class="form-input form-select" id="cm-bde" onchange="generateCustomerId()">
+              <option value="">-- Select Area First --</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Outlet Type</label>
+            <select class="form-input form-select" id="cm-type">
+              <option value="RETAIL">Retail</option>
+              <option value="WHOLESALE">Wholesale</option>
+              <option value="KEY_ACCOUNT">Key Account</option>
+              <option value="HRC">HRC (Hotel/Restaurant/Club)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+            <label class="form-label">Status</label>
+            <select class="form-input form-select" id="cm-status">
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="PROSPECT">Prospect</option>
+            </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Address</label>
+          <input type="text" class="form-input" id="cm-address" placeholder="Address...">
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Phone</label>
+            <input type="text" class="form-input" id="cm-phone" placeholder="0812345678">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="cm-email" placeholder="contact@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Sizing</label>
+          <select class="form-input form-select" id="cm-sizing">
+            <option value="">Select...</option>
+            <option value="SMALL">Small</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LARGE">Large</option>
+            <option value="KEY">Key Account</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCustomerModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="con-overlay">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <div class="modal-head-title" id="con-modal-title">New Contract</div>
+      <button class="modal-close" onclick="closeContractModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="con-id">
+      <div class="form-grid">
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Contract ID <span class="required">*</span></label>
+            <input type="text" class="form-input" id="con-code" placeholder="CON-2025-001">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Customer ID <span class="required">*</span></label>
+            <input type="text" class="form-input" id="con-customer" placeholder="CUST-001">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-input" id="con-start">
+          </div>
+          <div class="form-row">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-input" id="con-end">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Contract Value</label>
+            <input type="number" class="form-input" id="con-value" placeholder="0">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Target</label>
+            <input type="number" class="form-input" id="con-target" placeholder="0">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Contract Type</label>
+            <select class="form-input form-select" id="con-type">
+              <option value="ANNUAL">Annual</option>
+              <option value="QUARTERLY">Quarterly</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Period</label>
+            <input type="text" class="form-input" id="con-period" placeholder="e.g. Q1-2025">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Brands</label>
+          <input type="text" class="form-input" id="con-brands" placeholder="Brand A, Brand B...">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Principle</label>
+          <input type="text" class="form-input" id="con-principle" placeholder="Principle name">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Promotion</label>
+          <input type="text" class="form-input" id="con-promotion" placeholder="Promotion details">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeContractModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContract()">Save Contract</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="usr-overlay">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <div class="modal-head-title" id="usr-modal-title">Add User</div>
+      <button class="modal-close" onclick="closeUserModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="um-id">
+      <input type="hidden" id="um-users-id">
+      <div class="form-grid">
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">User ID <span class="required">*</span></label>
+            <input type="text" class="form-input" id="um-code" placeholder="Auto-generated" readonly style="background: rgba(0,0,0,0.05); cursor: not-allowed; font-weight: bold; color: var(--primary);">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Full Name <span class="required">*</span></label>
+            <input type="text" class="form-input" id="um-name" placeholder="John Doe">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Username <span class="required">*</span></label>
+            <input type="text" class="form-input" id="um-username" placeholder="john_doe">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Email <span class="required">*</span></label>
+            <input type="email" class="form-input" id="um-email" placeholder="john@example.com">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label class="form-label">Team <span class="required">*</span></label>
+                <select class="form-input form-select" id="um-main-team" onchange="updateSubTeamDropdown(this.value)">
+                    <option value="">-- Select Team --</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Horeca">Horeca</option>
+                    <option value="On Premise">On Premise</option>
+                    <option value="Southern">Southern</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">Area <span class="required">*</span></label>
+                <select class="form-input form-select" id="um-sub-team">
+                    <option value="">-- Select Team First --</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Level / Position</label>
+            <input type="text" class="form-input" id="um-level" placeholder="Sale, Marketing, CEO...">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Password <span class="required">*</span></label>
+            <input type="text" class="form-input" id="um-password" placeholder="Set a password">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Contact / Phone</label>
+            <input type="text" class="form-input" id="um-contact" placeholder="0812345678">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Status</label>
+          <label class="checkbox-row" style="margin-top:8px;">
+            <input type="checkbox" id="um-active" checked>
+            <span>Account Active</span>
+          </label>
+        </div>
+        <div id="um-error" class="form-error" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUserModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="prod-overlay">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <div class="modal-head-title" id="prod-modal-title">Add Product</div>
+      <button class="modal-close" onclick="closeProductModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-id">
+      <div class="form-grid">
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Product ID <span class="required">*</span></label>
+            <input type="text" class="form-input" id="pm-code" placeholder="PROD-001">
+          </div>
+          <div class="form-row">
+            <label class="form-label">SKU</label>
+            <input type="text" class="form-input" id="pm-sku" placeholder="SKU code">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Product Name <span class="required">*</span></label>
+          <input type="text" class="form-input" id="pm-name" placeholder="Product Name">
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Brand</label>
+            <input type="text" class="form-input" id="pm-brand" placeholder="Brand">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-input" id="pm-category" placeholder="Category">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Unit</label>
+            <input type="text" class="form-input" id="pm-unit" placeholder="Bottle, Case, Box...">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Price</label>
+            <input type="number" class="form-input" id="pm-price" placeholder="0">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Size</label>
+            <input type="text" class="form-input" id="pm-size" placeholder="700ml, 1L...">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Pack</label>
+            <input type="text" class="form-input" id="pm-pack" placeholder="12x1, 6x2...">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Principle</label>
+          <input type="text" class="form-input" id="pm-principle" placeholder="Principle / Supplier">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeProductModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="price-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-title" id="price-modal-title">Add Price</div>
+      <button class="modal-close" onclick="closePriceModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prm-id">
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Price List ID <span class="required">*</span></label>
+          <input type="text" class="form-input" id="prm-code" placeholder="PL-001">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Product ID <span class="required">*</span></label>
+          <input type="text" class="form-input" id="prm-product" placeholder="PROD-001">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Price List Name</label>
+          <input type="text" class="form-input" id="prm-name" placeholder="Standard, Premium...">
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Including VAT</label>
+            <input type="number" class="form-input" id="prm-inc" placeholder="0.00">
+          </div>
+          <div class="form-row">
+            <label class="form-label">Excluding VAT</label>
+            <input type="number" class="form-input" id="prm-exc" placeholder="0.00">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Rebate %</label>
+          <input type="number" class="form-input" id="prm-rebate" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePriceModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePrice()">Save Price</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="act-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-title">Add Activity Log</div>
+      <button class="modal-close" onclick="closeActivityModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label class="form-label">Log ID <span class="required">*</span></label>
+          <input type="text" class="form-input" id="alm-id" placeholder="LOG-001">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Customer ID <span class="required">*</span></label>
+          <input type="text" class="form-input" id="alm-customer" placeholder="CUST-001">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Type</label>
+          <select class="form-input form-select" id="alm-type">
+            <option value="CALL">Call</option>
+            <option value="VISIT">Visit</option>
+            <option value="EMAIL">Email</option>
+            <option value="ORDER">Order</option>
+            <option value="COMPLAINT">Complaint</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Note</label>
+          <textarea class="form-input" id="alm-note" rows="3" placeholder="Note details..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeActivityModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveActivity()">Save Log</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pw-overlay">
+  <div class="modal-box" style="max-width:340px;">
+    <div class="modal-head">
+      <div class="modal-head-title">User Password</div>
+      <button class="modal-close" onclick="closePwModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="pw-user-name" style="font-weight:600;margin-bottom:10px;"></div>
+      <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;">
+        <span id="pw-value" style="font-family:'IBM Plex Mono',monospace;font-size:15px;flex:1;"></span>
+        <button class="btn btn-primary btn-sm" onclick="copyPw()">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:390;display:none;" id="detail-backdrop" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-panel-head">
+    <button class="detail-back" onclick="closeDetail()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div>
+      <div style="font-size:15px;font-weight:700;" id="detail-title">Visit Detail</div>
+      <div style="font-size:12px;color:var(--text-3);" id="detail-sub"></div>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lb-img" src="" alt="">
+</div>
+
+<div id="toast-container"></div>
+
+<script src="admin.js?v=6"></script>
+
+</body>
+</html>
