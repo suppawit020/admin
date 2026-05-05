@@ -683,7 +683,7 @@ async function loadCustomers(page = 0) {
     }
 
     const start = page * CUST_PER_PAGE;
-    q += `&order=created_at.desc&limit=${CUST_PER_PAGE}&offset=${start}`;
+    q += `&order=customer_id.asc&limit=${CUST_PER_PAGE}&offset=${start}`;
 
     const res = await supa(q, { prefer: 'count=exact' });
     const cr = res.headers.get('content-range');
@@ -782,7 +782,14 @@ window.updateBdeDropdownByArea = async function () {
   if (team && area) {
     const availableUsers = allUsers.filter(u => u.team === team && u.sub_team === area);
     availableUsers.forEach(u => {
-      const count = bdeCustomerCounts[u.name] || 0;
+      let count = 0;
+    if (u.team === 'Admin') {
+      // ถ้าเป็น Admin ให้จับจำนวนร้านของทุกคนมาบวกรวมกัน
+      count = Object.values(bdeCustomerCounts).reduce((sum, val) => sum + val, 0);
+    } else {
+      // ถ้าเป็น BDE ปกติ ให้นับเฉพาะร้านในชื่อตัวเอง
+      count = bdeCustomerCounts[u.name] || 0; 
+    }
       const opt = document.createElement('option');
       opt.value = u.name;
       opt.textContent = `${u.name} (Handling ${count} outlets)`; 
@@ -921,7 +928,27 @@ window.saveCustomer = async function () {
     sizing: document.getElementById('cm-sizing').value
   };
   
-  if (!p.customer_id || !p.name_of_outlet || !p.team || !p.bde) return toast('Please fill required fields (ID, Name, Team, BDE)', 'error');
+  const requiredFieldsCust = [
+      { id: 'cm-code', name: 'Customer ID' },
+      { id: 'cm-name', name: 'Outlet Name' },
+      { id: 'cm-team', name: 'Team' },
+      { id: 'cm-area', name: 'Area' },
+      { id: 'cm-bde', name: 'BDE' }
+  ];
+
+  for (const field of requiredFieldsCust) {
+      const el = document.getElementById(field.id);
+      if (!el || !el.value.trim()) {
+          toast(`Please fill in: ${field.name}`, 'error');
+          if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.focus();
+              el.classList.add('error-highlight');
+              setTimeout(() => el.classList.remove('error-highlight'), 2500);
+          }
+          return;
+      }
+  }
   
   try {
     if (editingCustomerId) { 
@@ -992,8 +1019,14 @@ function renderUsers() {
   
   tbody.innerHTML = allUsers.map((u) => {
     const isActive = u.users ? u.users.is_active : false;
-    const pos = u.level || (u.users ? u.users.position : '—');
-    const count = bdeCustomerCounts[u.name] || 0; 
+    
+    // 🌟 โค้ดนับร้านค้า (บวกให้ Admin ทุกร้าน)
+    let count = 0;
+    if (u.team === 'Admin' || u.name === 'System Admin') {
+      count = Object.values(bdeCustomerCounts).reduce((sum, val) => sum + val, 0);
+    } else {
+      count = bdeCustomerCounts[u.name] || 0; 
+    }
     
     return `<tr>
       <td class="td-mono">${esc(u.user_id)}</td>
@@ -1001,13 +1034,13 @@ function renderUsers() {
       <td class="td-mono">
         <div style="display:flex;align-items:center;gap:6px;">
           ${esc(u.username)}
-          <button class="btn-icon" style="padding:4px;color:var(--text-3);border:none;background:transparent;" onclick="revealPw('${u.id}')" title="Reveal Password">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
         </div>
       </td>
       <td><span class="badge badge-outline">${esc(u.team || '—')}</span></td>
-      <td><span class="badge badge-outline">${esc(pos)}</span></td>
+      
+      <!-- 🌟 ใช้ u.sub_team สำหรับแสดง Area -->
+      <td><span class="badge badge-outline">${esc(u.sub_team || '—')}</span></td>
+      
       <td><span class="badge badge-grey">${count} outlets</span></td>
       <td><span class="badge ${isActive ? 'badge-green' : 'badge-grey'}">${isActive ? 'Active' : 'Inactive'}</span></td>
       <td><div style="display:flex;gap:6px;">
@@ -1066,82 +1099,127 @@ window.openUserModal = function (id = null) {
 window.closeUserModal = function () { document.getElementById('usr-overlay').classList.remove('open'); editingUserId = null; };
 
 window.saveUser = async function () {
-  const user_id = document.getElementById('um-code').value.trim();
-  const name = document.getElementById('um-name').value.trim();
-  const username = document.getElementById('um-username').value.trim().toLowerCase();
-  const email = document.getElementById('um-email').value.trim();
-  const team = document.getElementById('um-main-team').value;
-  const level = document.getElementById('um-sub-team').value;
-  const contact = document.getElementById('um-contact').value.trim();
-  const pw = document.getElementById('um-password').value.trim();
-  const isActive = document.getElementById('um-active').checked;
-  if (!name || !username || !email || !team || !level || !pw) return toast('Please fill required fields (*)', 'error');
+  const user_id   = document.getElementById('um-code').value.trim();
+  const name      = document.getElementById('um-name').value.trim();
+  const username  = document.getElementById('um-username').value.trim().toLowerCase();
+  const email     = document.getElementById('um-email').value.trim();
+  const team      = document.getElementById('um-main-team').value;
+  const sub_team  = document.getElementById('um-sub-team').value;
+  const contact   = document.getElementById('um-contact').value.trim();
+  const pw        = document.getElementById('um-password').value.trim();
+  const isActive  = document.getElementById('um-active').checked;
 
-  // ── ตรวจสอบข้อมูลซ้ำจาก DB ก่อน save ──
-  try {
-    const excludeId = editingUserId || '';
-    const [nameRes, userRes, emailRes, codeRes] = await Promise.all([
-      supa(`user_information?select=id,name&name=ilike.${encodeURIComponent(name)}`),
-      supa(`user_information?select=id,username&username=eq.${encodeURIComponent(username)}`),
-      supa(`user_information?select=id,email&email=ilike.${encodeURIComponent(email)}`),
-      supa(`user_information?select=id,user_id&user_id=eq.${encodeURIComponent(user_id)}`),
-    ]);
+ const requiredFieldsUser = [
+      { id: 'um-code', name: 'User ID' },
+      { id: 'um-name', name: 'Full Name' },
+      { id: 'um-username', name: 'Username' },
+      { id: 'um-email', name: 'Email' },
+      { id: 'um-main-team', name: 'Team' },
+      { id: 'um-sub-team', name: 'Area' },
+      { id: 'um-password', name: 'Password' }
+  ];
 
-    const dupes = [];
-    const isDupe = (res) => (res.data || []).some(r => r.id !== excludeId);
+  for (const field of requiredFieldsUser) {
+      // ข้ามเช็ครหัสผ่านหากเป็นการ "แก้ไข User" (เพราะปล่อยว่างไว้แปลว่าไม่เปลี่ยนรหัสผ่าน)
+      if (field.id === 'um-password' && editingUserId) continue;
 
-    if (isDupe(nameRes))  dupes.push('ชื่อ (Name) "' + name + '"');
-    if (isDupe(userRes))  dupes.push('Username "' + username + '"');
-    if (isDupe(emailRes)) dupes.push('Email "' + email + '"');
-    if (isDupe(codeRes))  dupes.push('Employee ID "' + user_id + '"');
-
-    if (dupes.length > 0) {
-      toast('ข้อมูลซ้ำ: ' + dupes.join(', '), 'error');
-      return;
-    }
-  } catch (e) {
-    toast('ไม่สามารถตรวจสอบข้อมูลซ้ำได้: ' + e.message, 'error');
-    return;
+      const el = document.getElementById(field.id);
+      if (!el || !el.value.trim()) {
+          toast(`Please fill in: ${field.name}`, 'error');
+          if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.focus();
+              el.classList.add('error-highlight');
+              setTimeout(() => el.classList.remove('error-highlight'), 2500);
+          }
+          return;
+      }
   }
 
   try {
     if (editingUserId) {
+      // ─── โหมดแก้ไข ───────────────────────────────────────────
+      // 1. อัปเดต user_information
+      await supa(`user_information?id=eq.${editingUserId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ user_id, username, email, name, team, sub_team, contact }),
+        prefer: 'return=minimal'
+      });
+
+      // 2. อัปเดต users (password + active status) ถ้ามี users_id
       const usersId = document.getElementById('um-users-id').value;
-      if (usersId && usersId !== 'undefined') {
-        await supa(`users?id=eq.${usersId}`, { method: 'PATCH', body: JSON.stringify({ name, username, position: level, password_hash: pw, is_active: isActive }), prefer: 'return=minimal' });
+      if (usersId && pw) {
+        await supa(`users?id=eq.${usersId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ password_hash: pw, is_active: isActive, position: sub_team }),
+          prefer: 'return=minimal'
+        });
       }
-      await supa(`user_information?id=eq.${editingUserId}`, { method: 'PATCH', body: JSON.stringify({ user_id, username, email, name, team, level, contact }), prefer: 'return=minimal' });
-      toast('User updated');
+
+      toast('อัปเดตข้อมูลสำเร็จ');
+
     } else {
-      const uRes = await supa('users', { method: 'POST', body: JSON.stringify({ name, username, position: level, password_hash: pw, is_active: isActive }) });
-      if (!uRes.data || !uRes.data[0]) throw new Error("Username already exists in auth");
-      const newUsersId = uRes.data[0].id;
-      await supa('user_information', { method: 'POST', body: JSON.stringify({ users_id: newUsersId, user_id, username, email, name, team, level, contact }) });
-      toast('New user created');
+      // ─── โหมดสร้างใหม่ ────────────────────────────────────────
+      // 1. สร้าง record ใน users ก่อน (ไม่ผ่าน Auth SDK)
+      const usersRes = await supa('users', {
+        method: 'POST',
+        body: JSON.stringify({
+          name:          name,
+          username:      username,
+          password_hash: pw,
+          position:      sub_team,
+          is_active:     isActive
+        }),
+        prefer: 'return=representation'
+      });
+
+      const newUsersId = Array.isArray(usersRes.data) ? usersRes.data[0]?.id : usersRes.data?.id;
+      if (!newUsersId) throw new Error('ไม่สามารถสร้าง users record ได้');
+
+      // 2. สร้าง record ใน user_information พร้อม link ไปที่ users
+      await supa('user_information', {
+        method: 'POST',
+        body: JSON.stringify({
+          users_id: newUsersId,
+          user_id:  user_id,
+          username: username,
+          email:    email || `${username}@visitation.app`,
+          name:     name,
+          team:     team,
+          sub_team: sub_team,
+          level:    sub_team,
+          contact:  contact
+        })
+      });
+
+      toast('✅ สร้างผู้ใช้ใหม่สำเร็จ');
     }
-    closeUserModal(); await loadUsers(usrPage);
-  } catch (e) { toast('Error saving user: ' + e.message, 'error'); }
+
+    closeUserModal();
+    await loadUsers(usrPage);
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
 };
 
 async function deleteUser(id) {
   try {
     const u = allUsers.find(x => x.id === id);
-    await supa(`user_information?id=eq.${id}`, { method: 'DELETE' });
-    if (u && u.users_id) { await supa(`users?id=eq.${u.users_id}`, { method: 'DELETE' }); }
-    toast('User deleted'); await loadUsers(usrPage);
-  } catch (e) { toast('Delete failed (Data tied to records)', 'error'); }
-}
 
-window.revealPw = function (id) {
-  const u = allUsers.find(x => x.id === id); if (!u) return;
-  document.getElementById('pw-user-name').textContent = u.name;
-  document.getElementById('pw-value').textContent = u.users ? u.users.password_hash : '—';
-  document.getElementById('pw-overlay').classList.add('open');
-};
-window.closePwModal = function () { document.getElementById('pw-overlay').classList.remove('open'); };
-window.copyPw = function () {
-  navigator.clipboard.writeText(document.getElementById('pw-value').textContent).then(() => toast('Password copied!'));
-};
+    // 1. ลบ user_information ก่อน (FK child)
+    await supa(`user_information?id=eq.${id}`, { method: 'DELETE' });
+
+    // 2. ลบ users (parent) ถ้ามี users_id
+    if (u?.users_id) {
+      await supa(`users?id=eq.${u.users_id}`, { method: 'DELETE' });
+    }
+
+    toast('User deleted successfully');
+    await loadUsers(usrPage);
+  } catch (e) {
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
 
 
 // ═══════════════════════════════════════════
