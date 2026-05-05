@@ -1,6 +1,9 @@
 /* ═══════════════════════════════════════════
    DESIGN TOKENS — Refined Industrial Theme
    ════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
 :root {
   --bg: #F4F4F0;
   --surface: #FFFFFF;
@@ -1666,4 +1669,20 @@ tr:hover td {
   height: 1px;
   background: var(--border);
   margin: 1.5rem 0;
+}
+
+/* Animation สำหรับกรอบแดงแจ้งเตือนให้กรอกข้อมูล */
+.error-highlight {
+    border-color: var(--red) !important;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2) !important;
+    animation: shake 0.4s ease-in-out;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
 }
